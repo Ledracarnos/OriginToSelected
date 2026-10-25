@@ -209,21 +209,21 @@ def validate_object(context):
 def validate_parenting(obj):
     if not obj.parent:
         return
-    if obj.parent_type not in {'OBJECT', 'BONE'}:
-        raise ValueError("Vertex parenting is not supported; use object or bone parenting.")
+    if obj.parent_type not in {'OBJECT', 'BONE', 'VERTEX', 'VERTEX_3'}:
+        raise ValueError("Unsupported parenting type.")
     if obj.parent_type == 'BONE':
         if obj.parent.type != 'ARMATURE' or obj.parent_bone not in obj.parent.pose.bones:
             raise ValueError("The parent bone is missing or invalid.")
 
 
 def effective_parent_matrix(obj):
-    """Use Blender's computed bone attachment, including pose and relative mode.
+    """Use Blender's computed bone or vertex attachment.
 
     With world = attachment @ parent_inverse @ basis, recovering the attachment
-    avoids approximating the bone's tail offset or relative-parent behavior.
+    avoids approximating bone offsets or evaluated vertex-parent frames.
     The view layer must be up to date; child constraints are not compensated.
     """
-    if obj.parent_type == 'BONE':
+    if obj.parent_type in {'BONE', 'VERTEX', 'VERTEX_3'}:
         return (obj.matrix_world @ obj.matrix_basis.inverted()
                 @ obj.matrix_parent_inverse.inverted())
     return obj.parent.matrix_world.copy()
@@ -319,11 +319,16 @@ def apply_pivot(context, obj, origin, rotation):
                 item = item.parent
             return depth
 
+        # Vertex attachments depend on the corrected mesh coordinates. Evaluate
+        # them before restoring child transforms, not after compensation.
+        writes_started = True
+        transform_mesh(mesh, correction, normals)
+        context.view_layer.update()
+
         # Selected copies can be each other's ancestors: apply all compensation
-        # parent-first, using each parent's updated world matrix.
+        # parent-first, using each parent's updated world matrix and attachment.
         for item in sorted(targets, key=parent_depth):
             target = targets[item]
-            writes_started = True
             if item.parent:
                 item.matrix_parent_inverse = (effective_parent_matrix(item).inverted()
                                              @ target @ item.matrix_basis.inverted())
@@ -334,8 +339,6 @@ def apply_pivot(context, obj, origin, rotation):
                 item.scale = scales[item]
             context.view_layer.update()
 
-        transform_mesh(mesh, correction, normals)
-        context.view_layer.update()
     except Exception as exc:
         # Never undo the user's action automatically. A genuine API failure
         # after writes is reported as an incomplete, manually undoable action.

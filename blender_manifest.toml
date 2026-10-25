@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "selection_to_pivot"
-version = "1.3.31"
+version = "1.3.32"
 name = "Selection to Pivot"
 tagline = "Set the origin and local axes from a mesh selection"
 maintainer = "Nicolas Bourgeais"
