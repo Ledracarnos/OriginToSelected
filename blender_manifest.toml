@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+id = "selection_to_pivot"
+version = "1.3.31"
+name = "Selection to Pivot"
+tagline = "Set the origin and local axes from a mesh selection"
+maintainer = "Nicolas Bourgeais"
+type = "add-on"
+tags = ["Object", "Mesh"]
+
+blender_version_min = "5.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+# NumPy is bundled with Blender. No wheels or permissions are required.
+[build]
+paths = ["__init__.py"]

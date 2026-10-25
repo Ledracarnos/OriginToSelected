@@ -1,0 +1,29 @@
+# Generated extension packages and build output
+*.zip
+/build/
+/dist/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editor, operating system and local session files
+.vscode/
+.idea/
+.codenomad/
+.DS_Store
+Thumbs.db
+*.blend1
+*.blend2
+*.log
+.env
+.env.*
+
+# Machine-specific installer and documentation preparation notes
+/update_blender_extension.ps1
+/docs/README.md
+/docs/images/README.md
