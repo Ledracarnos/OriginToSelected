@@ -108,3 +108,13 @@ The geometry remains linked after the operation: the extension does not create a
 Object scale values are preserved. If an object has non-uniform scale, compensation does not guarantee that its appearance will remain unchanged when realigning the axes. The extension displays the **Non-uniform scale** warning in this case.
 
 ![Non-uniform scale and the Non-uniform scale warning](docs/images/non_uniform_scale.png)
+
+## Note on Axis Visualization
+
+For this documentation, I used a **Geometry Nodes** setup to make the object's local axes easier to see. This setup is only a visual aid and is not required to use the extension.
+
+![Geometry Nodes setup used to visualize the object's local axes in the documentation](docs/images/geometry_node.png)
+
+For normal use, I recommend enabling **Axes** under **Object Properties → Viewport Display → Show** to display the object's local axes directly in the viewport.
+
+![Enable Axes in Object Properties under Viewport Display](docs/images/show_axes.png)
