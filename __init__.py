@@ -165,7 +165,7 @@ def scale_free_world(obj):
     return obj.matrix_world @ Matrix.Diagonal((*[1.0 / abs(value) for value in scale], 1.0))
 
 
-def pivot_users(context, obj):
+def origin_users(context, obj):
     return [obj] + [other for other in context.selected_objects
                     if other != obj and other.type == 'MESH' and other.data == obj.data]
 
@@ -176,7 +176,7 @@ def scale_affects_alignment(obj):
 
 
 def selection_alignment(context, obj, index, negative, move_origin):
-    """Compute a rigid local pivot change in the active object's uniform-scale frame."""
+    """Compute a rigid local origin change in the active object's uniform-scale frame."""
     context.view_layer.update()
     unit_world = scale_free_world(obj)
     points, has_faces, normal = selected_points(
@@ -195,14 +195,14 @@ def selection_alignment(context, obj, index, negative, move_origin):
 def report_scale_effect(operator, users):
     if any(scale_affects_alignment(user) for user in users):
         operator.report({'WARNING'},
-                        "Object has non-uniform scale, Selection to Pivot may be unpredictable")
+                        "Object has non-uniform scale, Origin to Selection may be unpredictable")
 
 
 def validate_object(context):
     obj = context.object
     if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
         raise ValueError("Enter Edit Mode on a mesh object.")
-    validate_pivot_object(obj)
+    validate_origin_object(obj)
     return obj
 
 
@@ -229,7 +229,7 @@ def effective_parent_matrix(obj):
     return obj.parent.matrix_world.copy()
 
 
-def validate_pivot_object(obj):
+def validate_origin_object(obj):
     """Check technical prerequisites, not the user's animation/modifier choices."""
     if not obj.is_editable or not obj.data.is_editable:
         raise ValueError("The object and its mesh must be editable.")
@@ -244,7 +244,7 @@ def validate_pivot_object(obj):
     return obj
 
 
-class PivotApplicationError(RuntimeError):
+class OriginApplicationError(RuntimeError):
     """A real API error after writes began; keep the partial result undoable."""
 
 
@@ -259,10 +259,10 @@ def transform_mesh(mesh, correction, normals):
     mesh.update()
 
 
-def apply_pivot(context, obj, origin, rotation):
-    """Apply a rigid local pivot change, then restore each user's own scale.
+def apply_origin(context, obj, origin, rotation):
+    """Apply a rigid local origin change, then restore each user's own scale.
 
-    Other meshes keep their own pivots. Linked copies stay shared: selected
+    Other meshes keep their own origins. Linked copies stay shared: selected
     copies receive the same rigid mesh correction and retain their scale values.
     Their visible stretched shape can change; their scale-1 shape cannot.
     Unselected copies keep their transforms and receive the shared mesh change.
@@ -273,9 +273,9 @@ def apply_pivot(context, obj, origin, rotation):
     """
     mesh = obj.data
     saved_selection = list(context.selected_objects)
-    users = pivot_users(context, obj)
+    users = origin_users(context, obj)
     for user in users:
-        validate_pivot_object(user)
+        validate_origin_object(user)
     user_set = set(users)
     # Preserve ordinary children, but do not compensate an unselected instance
     # of the shared mesh through its parent relationship.
@@ -343,7 +343,7 @@ def apply_pivot(context, obj, origin, rotation):
         # Never undo the user's action automatically. A genuine API failure
         # after writes is reported as an incomplete, manually undoable action.
         if writes_started:
-            raise PivotApplicationError(str(exc)) from exc
+            raise OriginApplicationError(str(exc)) from exc
         raise
     finally:
         for other in context.selected_objects:
@@ -356,7 +356,7 @@ def apply_pivot(context, obj, origin, rotation):
     return users
 
 
-def tag_full_pivot_undo():
+def tag_full_origin_undo():
     """Include Object IDs in the outer operator's single undo step.
 
     Blender 5.2's Edit Mesh undo stores mesh data, not object transforms,
@@ -365,16 +365,16 @@ def tag_full_pivot_undo():
 
     Creating/removing an ID invalidates Blender's memfile undo cache. Blender
     then includes a hidden global snapshot with the outer Edit Mesh undo step,
-    restoring the entire pivot, children and mesh links together. The empty
+    restoring the entire origin change, children and mesh links together. The empty
     marker never enters the scene and no datablock is left behind. Do NOT add
     manual undo pushes or merge successive clicks into one undo group.
     """
-    marker = bpy.data.meshes.new(".Selection to Pivot Undo")
+    marker = bpy.data.meshes.new(".Origin to Selection Undo")
     bpy.data.meshes.remove(marker)
 
 
-def report_incomplete_pivot(operator, context, error):
-    tag_full_pivot_undo()
+def report_incomplete_origin(operator, context, error):
+    tag_full_origin_undo()
     message = "Operation incomplete: " + str(error)
     if context.preferences.edit.use_global_undo:
         message += ". Use Ctrl+Z to undo."
@@ -383,8 +383,8 @@ def report_incomplete_pivot(operator, context, error):
     return {'FINISHED'}
 
 
-class OBJECT_OT_selection_to_pivot(bpy.types.Operator):
-    bl_idname = "object.selection_to_pivot"
+class OBJECT_OT_origin_to_selection(bpy.types.Operator):
+    bl_idname = "object.origin_to_selection"
     bl_label = "Align Axis to Selection"
     bl_description = "Align an axis to the selection, optionally moving the origin"
     bl_options = {'REGISTER', 'UNDO'}
@@ -400,34 +400,34 @@ class OBJECT_OT_selection_to_pivot(bpy.types.Operator):
             origin, rotation = selection_alignment(
                 context, obj, index, self.negative, self.origin)
             if rotation is None:
-                # No direction to aim at: leave the pivot and undo history alone.
+                # No direction to aim at: leave the origin and undo history alone.
                 return {'CANCELLED'}
-            users = apply_pivot(context, obj, origin, rotation)
-            tag_full_pivot_undo()
+            users = apply_origin(context, obj, origin, rotation)
+            tag_full_origin_undo()
             report_scale_effect(self, users)
-        except PivotApplicationError as exc:
-            return report_incomplete_pivot(self, context, exc)
+        except OriginApplicationError as exc:
+            return report_incomplete_origin(self, context, exc)
         except (ValueError, RuntimeError, np.linalg.LinAlgError) as exc:
             self.report({'ERROR'}, str(exc))
             return {'CANCELLED'}
         return {'FINISHED'}
 
 
-class OBJECT_OT_selection_to_pivot_scale_warning(bpy.types.Operator):
-    bl_idname = "object.selection_to_pivot_scale_warning"
+class OBJECT_OT_origin_to_selection_scale_warning(bpy.types.Operator):
+    bl_idname = "object.origin_to_selection_scale_warning"
     bl_label = "Non-uniform scale"
-    bl_description = "Object has non-uniform scale, Selection to Pivot may be unpredictable"
+    bl_description = "Object has non-uniform scale, Origin to Selection may be unpredictable"
 
     def execute(self, context):
         return {'CANCELLED'}
 
 
-class VIEW3D_PT_selection_to_pivot(bpy.types.Panel):
-    bl_label = "Selection to Pivot"
-    bl_idname = "VIEW3D_PT_selection_to_pivot"
+class VIEW3D_PT_origin_to_selection(bpy.types.Panel):
+    bl_label = "Origin to Selection"
+    bl_idname = "VIEW3D_PT_origin_to_selection"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Selection to Pivot"
+    bl_category = "Origin to Selection"
 
     @classmethod
     def poll(cls, context):
@@ -437,10 +437,10 @@ class VIEW3D_PT_selection_to_pivot(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        if any(scale_affects_alignment(user) for user in pivot_users(context, obj)):
+        if any(scale_affects_alignment(user) for user in origin_users(context, obj)):
             row = layout.row()
             row.enabled = False
-            row.operator(OBJECT_OT_selection_to_pivot_scale_warning.bl_idname,
+            row.operator(OBJECT_OT_origin_to_selection_scale_warning.bl_idname,
                          text="Non-uniform scale", icon='ERROR')
         for move_origin in (True, False):
             if not move_origin:
@@ -451,7 +451,7 @@ class VIEW3D_PT_selection_to_pivot(bpy.types.Panel):
             for axis in AXES:
                 row = column.row(align=True)
                 for negative in (False, True):
-                    button = row.operator(OBJECT_OT_selection_to_pivot.bl_idname,
+                    button = row.operator(OBJECT_OT_origin_to_selection.bl_idname,
                                           text=("-" if negative else "") + axis,
                                           translate=False)
                     button.axis = axis
@@ -459,8 +459,8 @@ class VIEW3D_PT_selection_to_pivot(bpy.types.Panel):
                     button.origin = move_origin
 
 
-CLASSES = (OBJECT_OT_selection_to_pivot,
-           OBJECT_OT_selection_to_pivot_scale_warning, VIEW3D_PT_selection_to_pivot)
+CLASSES = (OBJECT_OT_origin_to_selection,
+           OBJECT_OT_origin_to_selection_scale_warning, VIEW3D_PT_origin_to_selection)
 
 
 def register():

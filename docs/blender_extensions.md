@@ -1,8 +1,12 @@
-# Selection to Pivot
+# Origin to Selection
 
-**Selection to Pivot** lets you set a mesh object’s origin position and local axis orientation using a geometry selection in **Edit Mode**.
+**Origin to Selection** lets you set a mesh object’s origin position and local axis orientation using a geometry selection in **Edit Mode**.
 
 The extension provides two functions: **move the origin and align an axis**, or **align an axis without moving the origin**.
+
+## Upgrading to 1.3.33
+
+The extension now uses the identifier `origin_to_selection`. When upgrading from an earlier version, disable the previous extension before enabling this one to avoid duplicate panels. Custom shortcuts or scripts must use `object.origin_to_selection`.
 
 ## Choosing an Axis
 
@@ -12,7 +16,7 @@ For either function, the **X, Y and Z** buttons select the local axis to align. 
 
 This function is available in the **Align Origin Axis to Selection** section of the panel.
 
-![Align Origin Axis to Selection section and axis buttons](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/align_origin_axis_to_selection.png)
+![Align Origin Axis to Selection section and axis buttons](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/align_origin_axis_to_selection.png)
 
 This function moves the origin to the center of the selection and aligns the chosen local axis with the direction determined from the selected geometry.
 
@@ -22,11 +26,11 @@ The selection center is the average position of the selected vertices.
 
 **Before the operation:** the geometry is selected, and the origin is offset from the selection.
 
-![Initial state: selected geometry and an offset origin](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/default_state.png)
+![Initial state: selected geometry and an offset origin](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/default_state.png)
 
 **After clicking Z:** the origin moves to the selection center, and the local Z axis aligns with the detected direction.
 
-![Origin at the selection center with the local Z axis aligned](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/align_origin_exemple.png)
+![Origin at the selection center with the local Z axis aligned](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/align_origin_exemple.png)
 
 ### Special Case: No Identifiable Direction
 
@@ -36,13 +40,13 @@ The origin is still moved to the selection center.
 
 **Single-point example:** clicking **Y** moves the origin to the selected point and aligns the local Y axis with the global Z axis.
 
-![Single-point selection: origin at the point and local Y axis aligned with global Z](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/origin_single_point.png)
+![Single-point selection: origin at the point and local Y axis aligned with global Z](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/origin_single_point.png)
 
 ## Align an Axis Without Moving the Origin
 
 This function is available in the **Align Axis to Selection** section of the panel.
 
-![Align Axis to Selection section and axis buttons](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/align_axis_to_selection.png)
+![Align Axis to Selection section and axis buttons](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/align_axis_to_selection.png)
 
 This function aligns the chosen local axis with the direction determined from the selected geometry while keeping the origin in its current position.
 
@@ -50,7 +54,7 @@ This function aligns the chosen local axis with the direction determined from th
 
 Clicking **X** aligns the local X axis with the selected edge without moving the origin.
 
-![Local X axis aligned with the selected edge without moving the origin](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/align_axis_exemple.png)
+![Local X axis aligned with the selected edge without moving the origin](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/align_axis_exemple.png)
 
 ### Special Case: No Identifiable Direction
 
@@ -58,7 +62,7 @@ If the selection has no identifiable direction, the direction from the current o
 
 **Single-point example:** clicking **Y** points the local Y axis from the origin toward the selected point without moving the origin.
 
-![Local Y axis pointing from the origin toward the selected point](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/align_axis_non_direction_exemple.png)
+![Local Y axis pointing from the origin toward the selected point](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/align_axis_non_direction_exemple.png)
 
 If the selection center coincides with the origin and no direction can be determined, **the operation makes no changes**.
 
@@ -72,15 +76,17 @@ Both functions use the same rules to determine the selection’s direction:
 
 If these rules cannot determine a direction, the special case described for each function applies.
 
-## Hierarchies, Shape Keys and Bone Parenting
+## Hierarchies, Shape Keys, Bone and Vertex Parenting
 
 The extension also supports the following setups:
 
 - **Object hierarchies:** the mesh object can be part of a parent–child hierarchy. Parenting relationships are preserved, and child object transforms are compensated to keep them in place. Linked copies follow the selection rules described below.
 - **Shape keys:** the mesh correction is applied to all shape keys, including **Basis**, so their geometry remains consistent with the new origin and local axes.
 - **Bone parenting:** mesh objects parented to armature bones are supported, including posed bones and relative bone parenting. The bone attachment is preserved.
+- **Vertex parenting (1 or 3 vertices):** mesh objects attached to a single vertex (**Vertex**) or three vertices (**Vertex (Triangle)**) are supported. Changing the child's origin or local axes preserves its parent, attachment vertices and geometry placement. The object continues to follow the parent when its vertices move.
+- **Vertex-parented children:** when changing the parent mesh's origin or local axes, attached child objects are compensated to keep them in place without removing their vertex parenting.
 
-> **Limitations:** vertex parenting is not supported. Modifiers, constraints or animation that depend on the origin or local axes may produce different results after the operation.
+> **Limitations:** modifiers, constraints or animation that depend on the origin or local axes may produce different results after the operation.
 
 ## Objects Sharing Linked Geometry
 
@@ -99,10 +105,22 @@ The geometry remains linked after the operation: the extension does not create a
 
 ### Example
 
-![Transform compensation for selected and unselected linked copies](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/linked_data.png)
+![Transform compensation for selected and unselected linked copies](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/linked_data.png)
 
 ### Limitation: Non-uniform Scale
 
 Object scale values are preserved. If an object has non-uniform scale, compensation does not guarantee that its appearance will remain unchanged when realigning the axes. The extension displays the **Non-uniform scale** warning in this case.
 
-![Non-uniform scale and the Non-uniform scale warning](https://raw.githubusercontent.com/Ledracarnos/SelectionToPivot/main/docs/images/non_uniform_scale.png)
+![Non-uniform scale and the Non-uniform scale warning](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/non_uniform_scale.png)
+
+## Note on Axis Visualization
+
+Some screenshots predate the rename. The current panel and sidebar tab are named **Origin to Selection**.
+
+For this documentation, I used a **Geometry Nodes** setup to make the object's local axes easier to see. This setup is only a visual aid and is not required to use the extension.
+
+![Geometry Nodes setup used to visualize the object's local axes in the documentation](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/geometry_node.png)
+
+For normal use, I recommend enabling **Axes** under **Object Properties → Viewport Display → Show** to display the object's local axes directly in the viewport.
+
+![Enable Axes in Object Properties under Viewport Display](https://raw.githubusercontent.com/Ledracarnos/OriginToSelection/main/docs/images/show_axes.png)
