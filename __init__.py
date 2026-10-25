@@ -195,7 +195,7 @@ def selection_alignment(context, obj, index, negative, move_origin):
 def report_scale_effect(operator, users):
     if any(scale_affects_alignment(user) for user in users):
         operator.report({'WARNING'},
-                        "Object has non-uniform scale, Origin to Selection may be unpredictable")
+                        "Object has non-uniform scale, Origin to Selected may be unpredictable")
 
 
 def validate_object(context):
@@ -369,7 +369,7 @@ def tag_full_origin_undo():
     marker never enters the scene and no datablock is left behind. Do NOT add
     manual undo pushes or merge successive clicks into one undo group.
     """
-    marker = bpy.data.meshes.new(".Origin to Selection Undo")
+    marker = bpy.data.meshes.new(".Origin to Selected Undo")
     bpy.data.meshes.remove(marker)
 
 
@@ -383,10 +383,10 @@ def report_incomplete_origin(operator, context, error):
     return {'FINISHED'}
 
 
-class OBJECT_OT_origin_to_selection(bpy.types.Operator):
-    bl_idname = "object.origin_to_selection"
-    bl_label = "Align Axis to Selection"
-    bl_description = "Align an axis to the selection, optionally moving the origin"
+class OBJECT_OT_origin_to_selected(bpy.types.Operator):
+    bl_idname = "object.origin_to_selected"
+    bl_label = "Origin to Selected"
+    bl_description = "Align an axis to the selected geometry, optionally moving the origin"
     bl_options = {'REGISTER', 'UNDO'}
 
     axis: bpy.props.EnumProperty(name="Axis", items=[(x, x, "") for x in AXES], default='X')
@@ -413,21 +413,21 @@ class OBJECT_OT_origin_to_selection(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OBJECT_OT_origin_to_selection_scale_warning(bpy.types.Operator):
-    bl_idname = "object.origin_to_selection_scale_warning"
+class OBJECT_OT_origin_to_selected_scale_warning(bpy.types.Operator):
+    bl_idname = "object.origin_to_selected_scale_warning"
     bl_label = "Non-uniform scale"
-    bl_description = "Object has non-uniform scale, Origin to Selection may be unpredictable"
+    bl_description = "Object has non-uniform scale, Origin to Selected may be unpredictable"
 
     def execute(self, context):
         return {'CANCELLED'}
 
 
-class VIEW3D_PT_origin_to_selection(bpy.types.Panel):
-    bl_label = "Origin to Selection"
-    bl_idname = "VIEW3D_PT_origin_to_selection"
+class VIEW3D_PT_origin_to_selected(bpy.types.Panel):
+    bl_label = "Origin to Selected"
+    bl_idname = "VIEW3D_PT_origin_to_selected"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Origin to Selection"
+    bl_category = "Origin to Selected"
 
     @classmethod
     def poll(cls, context):
@@ -440,18 +440,18 @@ class VIEW3D_PT_origin_to_selection(bpy.types.Panel):
         if any(scale_affects_alignment(user) for user in origin_users(context, obj)):
             row = layout.row()
             row.enabled = False
-            row.operator(OBJECT_OT_origin_to_selection_scale_warning.bl_idname,
+            row.operator(OBJECT_OT_origin_to_selected_scale_warning.bl_idname,
                          text="Non-uniform scale", icon='ERROR')
         for move_origin in (True, False):
             if not move_origin:
                 layout.separator()
             column = layout.column(align=True)
-            column.label(text="Align Origin Axis to Selection" if move_origin
-                         else "Align Axis to Selection")
+            column.label(text="Align Origin Axis to Selected" if move_origin
+                         else "Align Axis to Selected")
             for axis in AXES:
                 row = column.row(align=True)
                 for negative in (False, True):
-                    button = row.operator(OBJECT_OT_origin_to_selection.bl_idname,
+                    button = row.operator(OBJECT_OT_origin_to_selected.bl_idname,
                                           text=("-" if negative else "") + axis,
                                           translate=False)
                     button.axis = axis
@@ -459,8 +459,8 @@ class VIEW3D_PT_origin_to_selection(bpy.types.Panel):
                     button.origin = move_origin
 
 
-CLASSES = (OBJECT_OT_origin_to_selection,
-           OBJECT_OT_origin_to_selection_scale_warning, VIEW3D_PT_origin_to_selection)
+CLASSES = (OBJECT_OT_origin_to_selected,
+           OBJECT_OT_origin_to_selected_scale_warning, VIEW3D_PT_origin_to_selected)
 
 
 def register():
