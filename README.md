@@ -72,6 +72,16 @@ Both functions use the same rules to determine the selection’s direction:
 
 If these rules cannot determine a direction, the special case described for each function applies.
 
+## Hierarchies, Shape Keys and Bone Parenting
+
+The extension also supports the following setups:
+
+- **Object hierarchies:** the mesh object can be part of a parent–child hierarchy. Parenting relationships are preserved, and child object transforms are compensated to keep them in place. Linked copies follow the selection rules described below.
+- **Shape keys:** the mesh correction is applied to all shape keys, including **Basis**, so their geometry remains consistent with the new origin and local axes.
+- **Bone parenting:** mesh objects parented to armature bones are supported, including posed bones and relative bone parenting. The bone attachment is preserved.
+
+> **Limitations:** vertex parenting is not supported. Modifiers, constraints or animation that depend on the origin or local axes may produce different results after the operation.
+
 ## Objects Sharing Linked Geometry
 
 Multiple objects can share the same mesh data, for example after creating linked duplicates with **Alt+D**. Changes to that geometry affect every linked copy.
